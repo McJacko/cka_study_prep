@@ -298,3 +298,106 @@ After resolving any issue, document the incident thoroughly:
 By systematically following these steps, you can diagnose and resolve most Kubernetes cluster component failures. Regular training and staying updated with Kubernetes evolution will enhance your troubleshooting skills further.
 
 # Troubleshoot networking
+
+Troubleshooting networking in Kubernetes is a critical skill for any Kubernetes administrator, especially when dealing with complex, distributed applications across a multi-node environment. Kubernetes networking issues can manifest in several ways, such as services being inaccessible, pods unable to communicate with each other, or external traffic failing to reach the cluster. Below is a detailed guide to help you systematically approach and resolve networking issues in a Kubernetes environment.
+
+### 1. **Understand Kubernetes Networking Basics**
+
+Before diving into troubleshooting, ensure you have a solid understanding of key Kubernetes networking concepts:
+
+- **Pod networking**: Each pod is assigned a unique IP address. All containers in a pod share the network namespace, including the IP address and network ports. Pods should be able to communicate with all other pods across any node without NAT.
+  
+- **Service networking**: Services are an abstraction which defines a logical set of pods and a policy by which to access them. This can be set up as ClusterIP (default), NodePort, LoadBalancer, or ExternalName. Services provide load balancing across a set of pods.
+
+- **Network Policies**: These are specifications of how groups of pods are allowed to communicate with each other and other network endpoints.
+
+- **CNI (Container Network Interface)**: Kubernetes uses CNI as the standard to facilitate network connectivity for pods. Common CNI plugins include Calico, Flannel, and Weave.
+
+### 2. **Identify the Problem**
+
+First, clearly identify the symptoms and understand what is not working. Common networking issues may include:
+
+- Pods not able to communicate with other pods.
+- Services that are unreachable.
+- External connectivity issues when accessing services.
+- Performance issues, such as high latency or packet loss.
+
+### 3. **Check Pod Connectivity**
+
+Use `kubectl` to check if the pods are running and have been assigned IP addresses:
+
+```bash
+kubectl get pods -o wide
+```
+
+Verify if the pods are able to communicate with each other. You can execute commands like `ping` or `curl` within the pods:
+
+```bash
+kubectl exec -it <pod-name> -- ping <pod-ip-address>
+```
+
+### 4. **Validate Service Configuration**
+
+If the issue is with accessing a service, check the service’s configuration:
+
+```bash
+kubectl get svc <service-name>
+kubectl describe svc <service-name>
+```
+
+Make sure the service has endpoints, which means it is correctly targeting a set of running pods:
+
+```bash
+kubectl get endpoints <service-name>
+```
+
+### 5. **Inspect Network Policies**
+
+If network policies are applied, make sure they are not restricting the traffic in a way that’s causing the issue:
+
+```bash
+kubectl get networkpolicy
+kubectl describe networkpolicy <name>
+```
+
+### 6. **Review CNI Plugin Logs and Status**
+
+The CNI plugin might be misconfigured or experiencing issues. Check the logs and status of the CNI plugin:
+
+- Check CNI configuration in `/etc/cni/net.d/`.
+- Look at the logs of the CNI plugin. These might be located in the kubelet logs since the CNI plugin is invoked by kubelet, or on the node's syslog depending on your setup.
+
+### 7. **Debugging DNS Issues**
+
+If the issue is related to DNS:
+- Check the CoreDNS (or kube-dns) deployment and its logs:
+  ```bash
+  kubectl get pods -n kube-system -l k8s-app=kube-dns
+  kubectl logs -n kube-system -l k8s-app=kube-dns
+  ```
+- Use `dig` or `nslookup` from within a pod to test DNS resolution:
+  ```bash
+  kubectl exec -ti <pod-name> -- nslookup kubernetes.default
+  ```
+
+### 8. **Network Tracing and Packet Capturing**
+
+Tools like `tcpdump`, `traceroute`, or `ip route get` can be used within nodes or pods to trace network paths and capture packets. These tools help in understanding what is happening at the network level.
+
+### 9. **Consult Logs and Events**
+
+Don’t forget to check the events and logs related to the problematic resources:
+
+```bash
+kubectl describe pod <pod-name>
+kubectl get events --sort-by='.metadata.creationTimestamp'
+```
+
+### 10. **Use Advanced Network Troubleshooting Tools**
+
+Consider using advanced Kubernetes network troubleshooting tools like:
+- **Kube-router**: Provides visibility into network routes.
+- **Weave Scope**: Visualizes network connections.
+- **Calicoctl**: Specifically useful if using Calico as the CNI.
+
+By methodically following these steps and using the right tools, you can identify and resolve most networking issues in Kubernetes. This process will help ensure that your applications remain reliable and available to users.
