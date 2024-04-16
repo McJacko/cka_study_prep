@@ -50,8 +50,90 @@ Understanding how these components interact provides the flexibility and power t
 
 # Understand volume mode, access modes and reclaim policies for volumes
 
+### Volume Modes
+
+Volume modes in Kubernetes define how a volume is mounted on a host and subsequently made available to a pod. There are two primary volume modes:
+
+1. **Filesystem Mode**: This is the default mode where the volume is mounted on the host as a file system. Pods interact with the volume as if it were a regular directory in their file system.
+
+2. **Block Mode**: In this mode, a volume is attached to the host as a raw block device. It can be consumed by a pod as a raw block device, which is useful for applications that need lower-level access to storage, such as database applications that manage their own storage algorithms and indexing.
+
+The volume mode is specified in the PersistentVolume and PersistentVolumeClaim specifications. Not all storage backends support both modes, so it's important to verify the capabilities of the underlying storage system.
+
+### Access Modes
+
+Access modes in Kubernetes define how a volume can be accessed from a single or multiple nodes:
+
+1. **ReadWriteOnce (RWO)**: The volume can be mounted as read-write by a single node. This is the most common access mode for workloads that require a single point of write access.
+
+2. **ReadOnlyMany (ROX)**: The volume can be mounted as read-only by many nodes. This mode is suitable for scenarios where the data needs to be consumed by multiple pods, such as shared configuration data or public datasets.
+
+3. **ReadWriteMany (RWX)**: The volume can be mounted as read-write by many nodes. This is essential for applications that require concurrent write access from multiple pods, typically seen in distributed applications and file servers.
+
+The support for these access modes can vary depending on the underlying storage provider and the configuration of the environment. It's important to choose the correct access mode that matches the needs of your applications while also being supported by your storage backend.
+
+### Reclaim Policies
+
+Reclaim policies in Kubernetes dictate what happens to a persistent volume when the associated persistent volume claim (PVC) is deleted. This policy is set on the PersistentVolume resource and can have one of the following values:
+
+1. **Retain**: Under the retain policy, when a PVC is deleted, the Persistent Volume remains in the cluster and is moved to the 'Released' state. The data on the volume is intact and the volume is considered "released" but not available for other claims. Manual intervention is required to reclaim the resource or delete the data.
+
+2. **Delete**: This policy automatically deletes the volume from the underlying storage infrastructure when the PVC is deleted. This is useful in dynamic environments and services where the lifecycle of the storage is tightly coupled with the lifecycle of the PVC.
+
+3. **Recycle** (deprecated): This policy was used to scrub the data from the volume and make it available again for a new claim. Due to its limited support and operational complexity, it is generally deprecated in favor of dynamic provisioning.
+
+Understanding these components and how they interact with each other is crucial for efficiently managing storage in Kubernetes. These concepts not only help in ensuring that the applications have the necessary resources but also play a critical role in data integrity and access control in a multi-tenant environment.
 
 # Understand persistent volume claims primitive
 
+In Kubernetes, a **Persistent Volume Claim (PVC)** is a user-level abstraction that requests specific storage resources defined by a Persistent Volume (PV). This abstraction enables users to consume abstract storage resources without needing to know the details about the underlying storage infrastructure. PVCs are crucial for managing storage in Kubernetes, allowing for the dynamic provisioning of storage resources and the decoupling of storage configuration from the usage in pods.
+
+### Fundamental Aspects of PVCs
+
+#### 1. **Definition and Purpose**
+   - PVCs allow a user to specify the size of the storage, access modes, and sometimes specific performance characteristics (through StorageClasses) that are required.
+   - They are designed to abstract the details of how storage is provided from how it is consumed, thereby facilitating a separation of concerns that is core to the design principles of Kubernetes.
+
+#### 2. **Usage Workflow**
+   - **Requesting Storage**: A user creates a PVC that specifies characteristics like storage size and access modes.
+   - **Binding**: Kubernetes matches an available PV to a PVC based on the requirements outlined in the PVC. If a suitable PV is not available, and a StorageClass is defined, the cluster may dynamically provision a new PV to meet the PVC requirements.
+   - **Using the Volume**: Once bound, the PVC can be used as a volume in a Kubernetes pod. The lifecycle of the PVC is now tied to the lifecycle of the pod unless the PVC is defined to persist beyond the pod's life.
+
+#### 3. **Components of a PVC Specification**
+   - **Metadata**: Like all Kubernetes resources, a PVC requires basic metadata like name and namespace.
+   - **Spec**: This is where the requirements for storage are defined:
+     - **Access Modes**: Such as `ReadWriteOnce`, `ReadOnlyMany`, and `ReadWriteMany`.
+     - **Resources**: Requests for storage resources, specifically the amount of space required.
+     - **StorageClassName**: Optionally, the name of a StorageClass that should be used to dynamically provision storage.
+   - **Status**: Shows the current status of the PVC, such as `Bound`, `Pending`, or `Available`. The `Bound` status includes a reference to the Persistent Volume that satisfies the claim.
+
+### Example PVC Definition
+Here’s a simple example of a PVC YAML file in Kubernetes:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+```
+In this example:
+- The PVC requests a storage volume of 1 gigabyte that can be mounted with read-write permissions by one node at a time.
+- It specifies the use of the `standard` StorageClass, which might correspond to a default class provided by the cluster configuration that handles dynamic provisioning.
+
+### Key Considerations for Security Engineers
+As a security engineer, when dealing with PVCs, several considerations should be kept in mind:
+- **Access Controls**: Ensure appropriate RBAC (Role-Based Access Control) policies are in place to control who can create, update, and delete PVCs.
+- **Data Security**: Consider the security implications of the storage itself, including encryption at rest and in transit. This might be configured at the StorageClass level.
+- **Compliance and Auditing**: Be aware of the compliance requirements related to data storage and ensure that logs and monitoring are in place for access to and operations on PVCs.
+
+Understanding and effectively managing PVCs are essential for ensuring that applications have the necessary storage resources they require, while also maintaining the security and compliance posture critical in modern cloud-native environments.
 
 # Know how to configure applications with persistent storage
