@@ -579,5 +579,379 @@ By mastering these scaling techniques, you can ensure your applications are resi
 
 
 # Understand the primitives used to create robust, self-healing, application deployments
+
+# CKA Exam Study Guide: Creating Robust, Self-Healing Application Deployments
+
+## Overview
+
+Kubernetes provides several primitives that help in creating robust, self-healing application deployments. These primitives include Deployments, ReplicaSets, DaemonSets, StatefulSets, Jobs, and CronJobs. This guide covers the key concepts, best practices, and `kubectl` commands for managing these resources effectively.
+
+---
+
+## Deployments
+
+### Definition
+A Deployment provides declarative updates for Pods and ReplicaSets. It allows you to describe an application’s life cycle, such as which images to use for the app, the number of Pod replicas, and how to update them.
+
+### Key Features
+- Declarative updates
+- Rolling updates and rollbacks
+- Scaling
+- Self-healing
+
+### Creating and Managing Deployments
+
+1. **Create a Deployment:**
+   ```sh
+   kubectl create deployment <deployment-name> --image=<image-name>
+   ```
+
+2. **Get Deployment status:**
+   ```sh
+   kubectl get deployments
+   ```
+
+3. **Describe a Deployment:**
+   ```sh
+   kubectl describe deployment <deployment-name>
+   ```
+
+4. **Update a Deployment (image update):**
+   ```sh
+   kubectl set image deployment/<deployment-name> <container-name>=<new-image>
+   ```
+
+5. **Scale a Deployment:**
+   ```sh
+   kubectl scale deployment <deployment-name> --replicas=<number-of-replicas>
+   ```
+
+6. **Roll back a Deployment:**
+   ```sh
+   kubectl rollout undo deployment/<deployment-name>
+   ```
+
+---
+
+## ReplicaSets
+
+### Definition
+A ReplicaSet ensures a specified number of Pod replicas are running at any given time. It is often used by Deployments to maintain the desired number of Pods.
+
+### Key Features
+- Ensures a specific number of replicas
+- Can be used independently or with Deployments
+
+### Creating and Managing ReplicaSets
+
+1. **Create a ReplicaSet:**
+   ```yaml
+   apiVersion: apps/v1
+   kind: ReplicaSet
+   metadata:
+     name: <replicaset-name>
+   spec:
+     replicas: <number-of-replicas>
+     selector:
+       matchLabels:
+         app: <app-label>
+     template:
+       metadata:
+         labels:
+           app: <app-label>
+       spec:
+         containers:
+         - name: <container-name>
+           image: <image-name>
+   ```
+
+2. **Apply the ReplicaSet configuration:**
+   ```sh
+   kubectl apply -f <replicaset-definition.yaml>
+   ```
+
+3. **Get ReplicaSet status:**
+   ```sh
+   kubectl get replicasets
+   ```
+
+4. **Describe a ReplicaSet:**
+   ```sh
+   kubectl describe replicaset <replicaset-name>
+   ```
+
+5. **Scale a ReplicaSet:**
+   ```sh
+   kubectl scale replicaset <replicaset-name> --replicas=<number-of-replicas>
+   ```
+
+---
+
+## DaemonSets
+
+### Definition
+A DaemonSet ensures that all (or some) nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected.
+
+### Key Features
+- Runs a Pod on each node
+- Suitable for background tasks and system daemons
+
+### Creating and Managing DaemonSets
+
+1. **Create a DaemonSet:**
+   ```yaml
+   apiVersion: apps/v1
+   kind: DaemonSet
+   metadata:
+     name: <daemonset-name>
+   spec:
+     selector:
+       matchLabels:
+         app: <app-label>
+     template:
+       metadata:
+         labels:
+           app: <app-label>
+       spec:
+         containers:
+         - name: <container-name>
+           image: <image-name>
+   ```
+
+2. **Apply the DaemonSet configuration:**
+   ```sh
+   kubectl apply -f <daemonset-definition.yaml>
+   ```
+
+3. **Get DaemonSet status:**
+   ```sh
+   kubectl get daemonsets
+   ```
+
+4. **Describe a DaemonSet:**
+   ```sh
+   kubectl describe daemonset <daemonset-name>
+   ```
+
+---
+
+## StatefulSets
+
+### Definition
+StatefulSets are used for applications that require persistent storage and ordered deployment, scaling, and deletion.
+
+### Key Features
+- Stable, unique network identifiers
+- Stable, persistent storage
+- Ordered, graceful deployment and scaling
+- Ordered, graceful deletion and termination
+
+### Creating and Managing StatefulSets
+
+1. **Create a StatefulSet:**
+   ```yaml
+   apiVersion: apps/v1
+   kind: StatefulSet
+   metadata:
+     name: <statefulset-name>
+   spec:
+     serviceName: <service-name>
+     replicas: <number-of-replicas>
+     selector:
+       matchLabels:
+         app: <app-label>
+     template:
+       metadata:
+         labels:
+           app: <app-label>
+       spec:
+         containers:
+         - name: <container-name>
+           image: <image-name>
+           volumeMounts:
+           - name: <volume-name>
+             mountPath: <mount-path>
+     volumeClaimTemplates:
+     - metadata:
+         name: <volume-name>
+       spec:
+         accessModes: ["ReadWriteOnce"]
+         resources:
+           requests:
+             storage: <storage-size>
+   ```
+
+2. **Apply the StatefulSet configuration:**
+   ```sh
+   kubectl apply -f <statefulset-definition.yaml>
+   ```
+
+3. **Get StatefulSet status:**
+   ```sh
+   kubectl get statefulsets
+   ```
+
+4. **Describe a StatefulSet:**
+   ```sh
+   kubectl describe statefulset <statefulset-name>
+   ```
+
+5. **Scale a StatefulSet:**
+   ```sh
+   kubectl scale statefulset <statefulset-name> --replicas=<number-of-replicas>
+   ```
+
+---
+
+## Jobs
+
+### Definition
+A Job creates one or more Pods and ensures that a specified number of them successfully terminate. Jobs are used for batch processing tasks.
+
+### Key Features
+- Ensures a specified number of completions
+- Supports parallelism and retries
+
+### Creating and Managing Jobs
+
+1. **Create a Job:**
+   ```yaml
+   apiVersion: batch/v1
+   kind: Job
+   metadata:
+     name: <job-name>
+   spec:
+     template:
+       spec:
+         containers:
+         - name: <container-name>
+           image: <image-name>
+         restartPolicy: Never
+     backoffLimit: <number-of-retries>
+   ```
+
+2. **Apply the Job configuration:**
+   ```sh
+   kubectl apply -f <job-definition.yaml>
+   ```
+
+3. **Get Job status:**
+   ```sh
+   kubectl get jobs
+   ```
+
+4. **Describe a Job:**
+   ```sh
+   kubectl describe job <job-name>
+   ```
+
+5. **View Job logs:**
+   ```sh
+   kubectl logs job/<job-name>
+   ```
+
+---
+
+## CronJobs
+
+### Definition
+A CronJob creates Jobs on a scheduled basis. It is used for periodic and recurring tasks, such as backups and report generation.
+
+### Key Features
+- Runs jobs on a schedule
+- Uses standard cron syntax for scheduling
+
+### Creating and Managing CronJobs
+
+1. **Create a CronJob:**
+   ```yaml
+   apiVersion: batch/v1
+   kind: CronJob
+   metadata:
+     name: <cronjob-name>
+   spec:
+     schedule: "<cron-schedule>"
+     jobTemplate:
+       spec:
+         template:
+           spec:
+             containers:
+             - name: <container-name>
+               image: <image-name>
+             restartPolicy: OnFailure
+   ```
+
+2. **Apply the CronJob configuration:**
+   ```sh
+   kubectl apply -f <cronjob-definition.yaml>
+   ```
+
+3. **Get CronJob status:**
+   ```sh
+   kubectl get cronjobs
+   ```
+
+4. **Describe a CronJob:**
+   ```sh
+   kubectl describe cronjob <cronjob-name>
+   ```
+
+5. **View CronJob logs:**
+   ```sh
+   kubectl logs job/<job-name>
+   ```
+
+---
+
+## Self-Healing
+
+### Liveness and Readiness Probes
+
+**Liveness Probes:** Determine if a container is running. If the liveness probe fails, Kubernetes will restart the container.
+
+**Readiness Probes:** Determine if a container is ready to accept traffic. If the readiness probe fails, the container will be removed from the Service endpoints.
+
+### Example of Liveness and Readiness Probes
+
+1. **Pod with Liveness and Readiness Probes:**
+   ```yaml
+   apiVersion: v1
+   kind: Pod
+   metadata:
+     name: <pod-name>
+   spec:
+     containers:
+     - name: <container-name>
+       image: <image-name>
+       livenessProbe:
+         httpGet:
+           path: /healthz
+           port: 8080
+         initialDelaySeconds: 3
+         periodSeconds: 3
+       readinessProbe:
+         httpGet:
+           path: /ready
+           port: 8080
+         initialDelaySeconds: 3
+         periodSeconds: 3
+   ```
+
+2. **Apply the Pod configuration:**
+   ```sh
+   kubectl apply -f <pod-definition.yaml>
+   ```
+
+3. **Get Pod status:**
+   ```sh
+   kubectl get pods
+   ```
+
+4. **Describe the Pod:**
+   ```sh
+   kubectl describe pod <pod-name>
+   ``
+
+
 # Understand how resource limits can affect Pod scheduling
 # Awareness of manifest management and common templating tools
