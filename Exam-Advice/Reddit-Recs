@@ -1,0 +1,35 @@
+First off, the exam is not really tough. By that I mean that out of the 17 questions, 8 were straightforward that you could execute with just a couple of commands. 3-4 were slightly involved but the instructions are crystal clear, so if you know what to do, you shouldn't face any hassles.
+
+The rest of them , around 5, will take up the bulk of your time.
+
+Focus areas are:
+
+Volumes -- PVs, PVCs, SCs
+
+RBAC -- know how to verify once you provision them
+
+Network Policies -- my Achilles heel
+
+Services (especially NodePorts)
+
+Upgrade a node to a target version
+
+Troubleshoot "unready" nodes
+
+Monitoring and logging -- easy
+
+Sidecars -- really struggled with this one
+
+ETCD backup and restore
+
+Deployment scaling and recording
+
+Draining nodes
+
+The best courses and material to clear the exam easily are:
+
+Kodekloud/Udemy's course by Mumshad Mannambeth. When it comes to labs and practice, nothing tops this.
+
+The Ultimate CKA course by Nana Janashia -- a super course that helped me understand the nitty-gritties of a Kubernetes cluster. Amazing stuff if you really want to understand what is happening behind the scenes in a K cluster. Also, plenty of tips for verifying services/ingress etc. and troubleshooting.
+
+The Network Policies recipes here: https://github.com/ahmetb/kubernetes-network-policy-recipes -- Do not under any circumstances overlook this goldmine of network policy examples. Super important.
