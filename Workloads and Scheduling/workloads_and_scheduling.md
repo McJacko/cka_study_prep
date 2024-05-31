@@ -1120,6 +1120,300 @@ Resource quotas limit the total amount of resources that can be consumed by a na
 
 By understanding and managing resource requests and limits effectively, you can ensure efficient resource utilization, prevent resource contention, and maintain a stable and performant Kubernetes cluster.
 
+# CKA Exam Study Guide: Awareness of Manifest Management and Common Templating Tools
 
+## Overview
 
-# Awareness of manifest management and common templating tools
+Kubernetes manifests define the desired state of the resources within your cluster. Managing these manifests efficiently and using templating tools can simplify the deployment and management of complex applications. This guide covers key concepts, best practices, and `kubectl` commands related to manifest management and introduces common templating tools such as Helm, Kustomize, and others.
+
+---
+
+## Manifest Management
+
+### Definition
+A Kubernetes manifest is a YAML or JSON file that describes the desired state of a Kubernetes resource (e.g., Pods, Deployments, Services). Manifest management involves creating, applying, updating, and versioning these files.
+
+### Key `kubectl` Commands
+
+1. **Apply a Manifest:**
+   ```sh
+   kubectl apply -f <manifest-file>
+   ```
+
+2. **Delete a Resource Defined in a Manifest:**
+   ```sh
+   kubectl delete -f <manifest-file>
+   ```
+
+3. **Dry Run to Test Changes:**
+   ```sh
+   kubectl apply -f <manifest-file> --dry-run=client
+   ```
+
+4. **View the Applied Configuration:**
+   ```sh
+   kubectl get -f <manifest-file> -o yaml
+   ```
+
+5. **Edit a Resource:**
+   ```sh
+   kubectl edit <resource-type> <resource-name>
+   ```
+
+6. **Get Resource Status:**
+   ```sh
+   kubectl get <resource-type> <resource-name>
+   ```
+
+7. **Describe a Resource:**
+   ```sh
+   kubectl describe <resource-type> <resource-name>
+   ```
+
+### Best Practices
+
+- **Use Version Control:** Store your manifests in a version control system (e.g., Git) to track changes and collaborate with your team.
+- **Modular Manifests:** Break down large manifests into smaller, reusable components.
+- **Use Namespace Isolation:** Define resources within specific namespaces to avoid conflicts and manage access control.
+
+---
+
+## Common Templating Tools
+
+### Helm
+
+**Helm** is a package manager for Kubernetes that simplifies the deployment and management of applications through reusable charts.
+
+#### Key Concepts
+
+- **Charts:** Helm packages that contain all the resource definitions necessary to run an application.
+- **Repositories:** Places where charts can be stored and shared.
+- **Releases:** Instances of a chart deployed to a Kubernetes cluster.
+
+#### Key Commands
+
+1. **Install Helm:**
+   ```sh
+   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+   ```
+
+2. **Add a Repository:**
+   ```sh
+   helm repo add <repo-name> <repo-url>
+   ```
+
+3. **Search for Charts:**
+   ```sh
+   helm search repo <chart-name>
+   ```
+
+4. **Install a Chart:**
+   ```sh
+   helm install <release-name> <chart-name>
+   ```
+
+5. **Upgrade a Release:**
+   ```sh
+   helm upgrade <release-name> <chart-name>
+   ```
+
+6. **Uninstall a Release:**
+   ```sh
+   helm uninstall <release-name>
+   ```
+
+7. **List Releases:**
+   ```sh
+   helm list
+   ```
+
+### Kustomize
+
+**Kustomize** is a tool for customizing Kubernetes configurations. It allows you to use a base set of manifests and overlay them with custom configurations without modifying the original files.
+
+#### Key Concepts
+
+- **Bases:** The original, reusable set of manifests.
+- **Overlays:** Custom configurations that modify the bases.
+- **Kustomization File:** A file named `kustomization.yaml` that defines the customization.
+
+#### Key Commands
+
+1. **Build a Kustomization:**
+   ```sh
+   kubectl kustomize <directory>
+   ```
+
+2. **Apply a Kustomization:**
+   ```sh
+   kubectl apply -k <directory>
+   ```
+
+3. **View the Kustomization:**
+   ```sh
+   kubectl kustomize <directory> -o <output-file>
+   ```
+
+#### Example Kustomization File
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+
+configMapGenerator:
+  - name: app-config
+    literals:
+      - LOG_LEVEL=debug
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
+```
+
+### Other Tools
+
+#### Kompose
+
+**Kompose** is a tool to help users move from `docker-compose` to Kubernetes. It takes a Docker Compose file and translates it into Kubernetes resources.
+
+1. **Convert Docker Compose to Kubernetes:**
+   ```sh
+   kompose convert -f docker-compose.yaml
+   ```
+
+2. **Apply the Converted Resources:**
+   ```sh
+   kubectl apply -f <generated-files>
+   ```
+
+#### Jsonnet
+
+**Jsonnet** is a data templating language for defining configurations and manifests. It offers a more programmatic way to generate Kubernetes manifests.
+
+1. **Install Jsonnet:**
+   ```sh
+   brew install jsonnet
+   ```
+
+2. **Generate Kubernetes Manifests:**
+   ```sh
+   jsonnet <jsonnet-file>
+   ```
+
+#### Example Jsonnet File
+
+```jsonnet
+local deployment = {
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: {
+    name: "myapp",
+  },
+  spec: {
+    replicas: 3,
+    selector: {
+      matchLabels: {
+        app: "myapp",
+      },
+    },
+    template: {
+      metadata: {
+        labels: {
+          app: "myapp",
+        },
+      },
+      spec: {
+        containers: [
+          {
+            name: "myapp",
+            image: "nginx",
+          },
+        ],
+      },
+    },
+  },
+};
+
+deployment
+```
+
+---
+
+## Practical Examples
+
+### Example 1: Managing Manifests with Helm
+
+1. **Add a Helm Repository:**
+   ```sh
+   helm repo add bitnami https://charts.bitnami.com/bitnami
+   ```
+
+2. **Install a Chart:**
+   ```sh
+   helm install my-release bitnami/nginx
+   ```
+
+3. **Upgrade the Release:**
+   ```sh
+   helm upgrade my-release bitnami/nginx
+   ```
+
+4. **Uninstall the Release:**
+   ```sh
+   helm uninstall my-release
+   ```
+
+### Example 2: Customizing Manifests with Kustomize
+
+1. **Directory Structure:**
+
+   ```
+   my-app/
+   ├── base/
+   │   ├── deployment.yaml
+   │   ├── service.yaml
+   │   └── kustomization.yaml
+   └── overlays/
+       └── dev/
+           ├── deployment-patch.yaml
+           └── kustomization.yaml
+   ```
+
+2. **Base Kustomization File (`base/kustomization.yaml`):**
+
+   ```yaml
+   resources:
+     - deployment.yaml
+     - service.yaml
+   ```
+
+3. **Overlay Kustomization File (`overlays/dev/kustomization.yaml`):**
+
+   ```yaml
+   resources:
+     - ../../base
+
+   patchesStrategicMerge:
+     - deployment-patch.yaml
+   ```
+
+4. **Apply the Kustomization:**
+   ```sh
+   kubectl apply -k overlays/dev
+   ```
+
+---
+
+## Best Practices
+
+1. **Use Templating Tools:** Utilize tools like Helm and Kustomize to manage complex configurations and maintain consistency across environments.
+2. **Version Control:** Store all manifests and customizations in a version control system to track changes and collaborate effectively.
+3. **Modular Configurations:** Break down configurations into reusable modules to enhance maintainability and reusability.
+4. **Use Overlays for Environment-Specific Configurations:** Use Kustomize overlays or Helm values files to manage environment-specific configurations without duplicating the base manifests.
+5. **Test Changes in a Staging Environment:** Test all changes in a staging environment before applying them to production to avoid unexpected issues.
+
+---
+
+By mastering manifest management and common templating tools, you can efficiently deploy, manage, and scale applications in Kubernetes while maintaining a clean and organized configuration structure.
