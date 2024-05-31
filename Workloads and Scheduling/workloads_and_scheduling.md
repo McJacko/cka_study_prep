@@ -954,4 +954,172 @@ A CronJob creates Jobs on a scheduled basis. It is used for periodic and recurri
 
 
 # Understand how resource limits can affect Pod scheduling
+
+# CKA Exam Study Guide: Understanding How Resource Limits Can Affect Pod Scheduling
+
+## Overview
+
+In Kubernetes, resource limits and requests play a critical role in Pod scheduling. They define how much CPU and memory a Pod can consume, and they help the scheduler decide on which node a Pod should run. This guide covers the key concepts, best practices, and `kubectl` commands for managing resource limits and understanding their impact on Pod scheduling.
+
+---
+
+## Resource Requests and Limits
+
+### Resource Requests
+
+**Resource requests** are the minimum amount of CPU and memory resources required for a container to run. Kubernetes uses these requests to schedule Pods on nodes that have sufficient available resources.
+
+### Resource Limits
+
+**Resource limits** are the maximum amount of CPU and memory resources a container can use. If a container tries to exceed these limits, Kubernetes may throttle the container's CPU or terminate it if it exceeds the memory limit.
+
+### Defining Resource Requests and Limits
+
+1. **Example Pod with Resource Requests and Limits:**
+   ```yaml
+   apiVersion: v1
+   kind: Pod
+   metadata:
+     name: resource-demo
+   spec:
+     containers:
+     - name: demo-container
+       image: nginx
+       resources:
+         requests:
+           memory: "64Mi"
+           cpu: "250m"
+         limits:
+           memory: "128Mi"
+           cpu: "500m"
+   ```
+
+2. **Apply the Pod configuration:**
+   ```sh
+   kubectl apply -f resource-demo-pod.yaml
+   ```
+
+### Inspecting Resource Requests and Limits
+
+1. **Describe the Pod to see resource requests and limits:**
+   ```sh
+   kubectl describe pod resource-demo
+   ```
+
+2. **Get resource usage of all Pods in a namespace:**
+   ```sh
+   kubectl top pod --namespace=<namespace-name>
+   ```
+
+---
+
+## Impact on Pod Scheduling
+
+### Node Selection
+
+When a Pod is scheduled, the Kubernetes scheduler considers the resource requests to determine on which node the Pod should run. It looks for nodes with sufficient unallocated resources to meet the Pod's requests.
+
+1. **Example: Scheduling a Pod:**
+   - A Pod with `requests.cpu=250m` and `requests.memory=64Mi` will only be scheduled on nodes with at least 250m CPU and 64Mi memory available.
+
+### Overcommitting Resources
+
+Kubernetes allows overcommitting resources by setting resource limits higher than requests. However, this can lead to resource contention if the actual usage exceeds the node's capacity.
+
+1. **Example: Overcommitted Node:**
+   - If a node has a total of 2 CPU and 4Gi memory, you could schedule multiple Pods with a total `requests.cpu=2` but `limits.cpu=4`. This means the total CPU limit exceeds the node's capacity, leading to potential throttling.
+
+### Quality of Service (QoS) Classes
+
+Kubernetes assigns a QoS class to each Pod based on its resource requests and limits. The QoS class affects how Kubernetes prioritizes Pods for eviction when the node runs out of resources.
+
+1. **Guaranteed QoS:**
+   - Pods with requests and limits for all containers are equal.
+   ```yaml
+   resources:
+     requests:
+       cpu: "500m"
+       memory: "128Mi"
+     limits:
+       cpu: "500m"
+       memory: "128Mi"
+   ```
+
+2. **Burstable QoS:**
+   - Pods with limits but not equal to requests.
+   ```yaml
+   resources:
+     requests:
+       cpu: "250m"
+       memory: "64Mi"
+     limits:
+       cpu: "500m"
+       memory: "128Mi"
+   ```
+
+3. **Best-Effort QoS:**
+   - Pods without any requests or limits.
+   ```yaml
+   resources: {}
+   ```
+
+### Resource Quotas
+
+Resource quotas limit the total amount of resources that can be consumed by a namespace. This helps prevent a single team or application from using too many cluster resources.
+
+1. **Create a Resource Quota:**
+   ```yaml
+   apiVersion: v1
+   kind: ResourceQuota
+   metadata:
+     name: quota
+   spec:
+     hard:
+       pods: "10"
+       requests.cpu: "4"
+       requests.memory: "8Gi"
+       limits.cpu: "8"
+       limits.memory: "16Gi"
+   ```
+
+2. **Apply the Resource Quota:**
+   ```sh
+   kubectl apply -f resource-quota.yaml --namespace=<namespace-name>
+   ```
+
+3. **Get Resource Quota status:**
+   ```sh
+   kubectl get resourcequota --namespace=<namespace-name>
+   ```
+
+4. **Describe the Resource Quota:**
+   ```sh
+   kubectl describe resourcequota quota --namespace=<namespace-name>
+   ```
+
+---
+
+## Best Practices
+
+1. **Set Appropriate Requests and Limits:**
+   - Ensure each container has appropriate resource requests and limits to avoid resource contention and ensure efficient resource utilization.
+
+2. **Monitor Resource Usage:**
+   - Use tools like `kubectl top` and Prometheus to monitor resource usage and adjust requests and limits based on observed usage patterns.
+
+3. **Use Resource Quotas:**
+   - Apply resource quotas to namespaces to control resource consumption and prevent overcommitment.
+
+4. **Avoid Overcommitting:**
+   - Avoid setting resource limits significantly higher than requests to reduce the risk of resource contention.
+
+5. **Test with Different Workloads:**
+   - Test your application under different workloads to understand its resource requirements and adjust requests and limits accordingly.
+
+---
+
+By understanding and managing resource requests and limits effectively, you can ensure efficient resource utilization, prevent resource contention, and maintain a stable and performant Kubernetes cluster.
+
+
+
 # Awareness of manifest management and common templating tools
