@@ -808,5 +808,192 @@ Annotations provide a way to configure advanced settings for the Ingress resourc
 ### Conclusion
 
 Understanding Ingress controllers and resources is crucial for managing external access to services in a Kubernetes cluster. Mastering the associated `kubectl` commands and knowing how to configure and troubleshoot Ingress resources will ensure you are well-prepared for the CKA exam. Practice creating and managing Ingress resources in a test environment to gain hands-on experience.
-# Know how to configure and use CoreDNS
+
+# CKA Study Guide: Configuring and Using CoreDNS in Kubernetes
+
+## Introduction to CoreDNS
+
+CoreDNS is a flexible, extensible DNS server that can serve as the Kubernetes cluster DNS. It is responsible for service discovery in Kubernetes, translating service names to IP addresses.
+
+### Key Concepts
+
+- **Cluster DNS**: The DNS service provided within the Kubernetes cluster.
+- **Service Discovery**: Mechanism that allows services to discover and communicate with each other.
+- **Corefile**: Configuration file for CoreDNS, written in a specific syntax defining the plugins and their order.
+
+## CoreDNS Configuration
+
+### Understanding CoreDNS Configuration (Corefile)
+
+The Corefile is the primary configuration file for CoreDNS. It defines how DNS queries are processed. Each line in the Corefile specifies a DNS zone and the associated plugins that will handle queries for that zone.
+
+Example Corefile:
+```plaintext
+.:53 {
+    errors
+    health
+    kubernetes cluster.local in-addr.arpa ip6.arpa {
+        fallthrough in-addr.arpa ip6.arpa
+    }
+    prometheus :9153
+    forward . /etc/resolv.conf
+    cache 30
+    loop
+    reload
+    loadbalance
+}
+```
+
+### Plugins
+
+- **errors**: Logs errors.
+- **health**: Provides a health check endpoint.
+- **kubernetes**: CoreDNS plugin for Kubernetes DNS-based service discovery.
+- **prometheus**: Exposes metrics in the Prometheus format.
+- **forward**: Forwards queries to an upstream DNS resolver.
+- **cache**: Caches DNS responses.
+- **loop**: Detects and mitigates query loops.
+- **reload**: Watches the Corefile for changes and reloads CoreDNS.
+- **loadbalance**: Load balances responses to DNS queries.
+
+## Deploying and Managing CoreDNS in Kubernetes
+
+### Viewing CoreDNS Deployment
+
+```sh
+kubectl get deployments -n kube-system
+```
+
+This command lists all deployments in the `kube-system` namespace, including CoreDNS.
+
+### CoreDNS Pods
+
+To list CoreDNS pods:
+```sh
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+### Configuring CoreDNS
+
+1. **Edit the Corefile**:
+
+   To modify CoreDNS behavior, edit the Corefile. The Corefile is typically stored in a ConfigMap named `coredns` in the `kube-system` namespace.
+   ```sh
+   kubectl edit configmap coredns -n kube-system
+   ```
+
+2. **Apply Changes**:
+
+   After editing the Corefile, CoreDNS needs to be reloaded to apply changes. The `reload` plugin handles this automatically.
+
+### Testing DNS Configuration
+
+To test DNS resolution within the cluster, use the `nslookup` or `dig` commands.
+
+1. **Create a test pod**:
+   ```sh
+   kubectl run -i --tty --rm debug --image=busybox --restart=Never -- sh
+   ```
+
+2. **Inside the pod, use `nslookup`**:
+   ```sh
+   nslookup <service-name>.<namespace>.svc.cluster.local
+   ```
+
+### CoreDNS Logs
+
+To check the logs of CoreDNS pods:
+```sh
+kubectl logs -n kube-system -l k8s-app=kube-dns
+```
+
+## CoreDNS and Service Discovery
+
+### Service Naming
+
+Kubernetes services are accessible via DNS names. The naming convention is:
+```plaintext
+<service-name>.<namespace>.svc.cluster.local
+```
+
+### Headless Services
+
+For headless services (without a cluster IP), CoreDNS returns the IPs of the pods directly.
+
+Example:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-headless-service
+  namespace: default
+spec:
+  clusterIP: None
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+    targetPort: 9376
+```
+
+### ExternalName Services
+
+These map a service to an external DNS name.
+
+Example:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-external-service
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: example.com
+```
+
+## Troubleshooting CoreDNS
+
+### Common Issues
+
+1. **DNS Resolution Failures**:
+   - Check CoreDNS pod logs for errors.
+   - Verify the Corefile configuration.
+   - Ensure the CoreDNS pods are running and healthy.
+
+2. **Latency or Timeouts**:
+   - Ensure CoreDNS has enough resources.
+   - Check for network issues within the cluster.
+
+3. **Configuration Issues**:
+   - Incorrect Corefile syntax.
+   - Plugins misconfiguration.
+
+### Useful kubectl Commands
+
+- **Describe CoreDNS Deployment**:
+  ```sh
+  kubectl describe deployment coredns -n kube-system
+  ```
+
+- **View CoreDNS ConfigMap**:
+  ```sh
+  kubectl get configmap coredns -n kube-system -o yaml
+  ```
+
+- **Check CoreDNS Pod Events**:
+  ```sh
+  kubectl get events -n kube-system --field-selector involvedObject.name=<coredns-pod-name>
+  ```
+
+## Summary
+
+Understanding CoreDNS and its configuration is crucial for the CKA exam. Focus on:
+
+- Corefile syntax and plugin functionality.
+- Deploying, configuring, and managing CoreDNS in Kubernetes.
+- Troubleshooting common DNS-related issues.
+- Testing DNS resolution within the cluster.
+
+By mastering these aspects, you'll be well-prepared to handle DNS-related tasks in Kubernetes and succeed in the CKA exam.
 # Choose an appropriate container network interface plugin
