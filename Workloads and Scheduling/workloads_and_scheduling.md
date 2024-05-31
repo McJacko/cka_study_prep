@@ -1,6 +1,5 @@
 # Understand deployments and how to perform rolling update and rollbacks
 
-```markdown
 # CKA Exam Study Guide: Understanding Deployments and How to Perform Rolling Updates and Rollbacks
 
 ## Introduction
@@ -141,10 +140,6 @@ Understanding and managing Kubernetes Deployments is crucial for maintaining app
 - `kubectl delete deployment <deployment-name>`
 
 This guide covers the basics of managing Deployments in Kubernetes, which is an important part of the Certified Kubernetes Administrator (CKA) exam. Ensure you practice these commands and understand their implications to confidently manage application deployments in a Kubernetes environment.
-```
-
-
-
 
 # Use ConfigMaps and Secrets to configure applications
 # Know how to scale applications
