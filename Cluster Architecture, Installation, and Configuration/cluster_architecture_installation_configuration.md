@@ -388,8 +388,208 @@ Kubeadm is a tool that simplifies the process of creating a Kubernetes cluster. 
 This guide covers the essential steps and commands required to set up a basic Kubernetes cluster using Kubeadm, which is a critical part of the CKA exam. Make sure to practice each step to gain proficiency and confidence in setting up and managing Kubernetes clusters.
 
 
+### Manage a Highly-Available Kubernetes Cluster
 
-# Manage a highly-available Kubernetes cluster
+---
+
+#### Introduction to Highly-Available Kubernetes Clusters
+
+A highly-available (HA) Kubernetes cluster ensures that your services remain available even if some of the cluster components fail. This typically involves multiple control plane nodes, distributed etcd clusters, and failover mechanisms.
+
+---
+
+#### Key Concepts
+
+1. **Control Plane Components**: These include `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, and `etcd`.
+2. **High Availability**: Deploying multiple instances of control plane components across different nodes to avoid single points of failure.
+3. **Load Balancing**: Using a load balancer to distribute traffic among multiple control plane nodes.
+4. **etcd Cluster**: A highly-available etcd cluster is essential for HA Kubernetes, usually with an odd number of nodes to maintain quorum.
+
+---
+
+#### Prerequisites
+
+1. **Nodes**: At least three control plane nodes and multiple worker nodes.
+2. **Networking**: Nodes must be able to communicate with each other.
+3. **Load Balancer**: A load balancer (e.g., HAProxy, Nginx) to distribute traffic to the control plane nodes.
+4. **Certificates**: Properly configured SSL/TLS certificates for secure communication.
+
+---
+
+#### Step-by-Step Guide to Set Up a Highly-Available Kubernetes Cluster
+
+1. **Prepare the Nodes**
+    - **Update the package index and install dependencies**:
+      ```bash
+      sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl
+      ```
+    - **Add the Kubernetes GPG key and repository**:
+      ```bash
+      sudo curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      ```
+    - **Install kubelet, kubeadm, and kubectl**:
+      ```bash
+      sudo apt-get update
+      sudo apt-get install -y kubelet kubeadm kubectl
+      sudo apt-mark hold kubelet kubeadm kubectl
+      ```
+
+2. **Disable Swap**
+    ```bash
+    sudo swapoff -a
+    sudo sed -i '/ swap / s/^/#/' /etc/fstab
+    ```
+
+3. **Set Up Load Balancer**
+    - Configure a load balancer to distribute traffic to all control plane nodes on port 6443.
+    - Example using HAProxy:
+      ```haproxy
+      frontend kubernetes-frontend
+        bind *:6443
+        option tcplog
+        mode tcp
+        default_backend kubernetes-backend
+
+      backend kubernetes-backend
+        mode tcp
+        balance roundrobin
+        option tcp-check
+        server master1 <control-plane-node-1-ip>:6443 check
+        server master2 <control-plane-node-2-ip>:6443 check
+        server master3 <control-plane-node-3-ip>:6443 check
+      ```
+
+4. **Initialize the First Control Plane Node**
+    - **Run kubeadm init with the control plane endpoint pointing to the load balancer**:
+      ```bash
+      sudo kubeadm init --control-plane-endpoint "<load-balancer-ip>:6443" --upload-certs --pod-network-cidr=192.168.0.0/16
+      ```
+    - **Set up kubeconfig for the default user**:
+      ```bash
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      ```
+
+5. **Deploy a Pod Network (Weave, Calico, Flannel, etc.)**
+    - **For example, using Calico**:
+      ```bash
+      kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      ```
+
+6. **Join Additional Control Plane Nodes**
+    - **Retrieve the join command from the output of the kubeadm init command**:
+      ```bash
+      kubeadm token create --print-join-command
+      ```
+    - **Join the second and third control plane nodes**:
+      ```bash
+      sudo kubeadm join <load-balancer-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash> --control-plane --certificate-key <certificate-key>
+      ```
+
+7. **Join Worker Nodes**
+    - **Run the join command on each worker node**:
+      ```bash
+      sudo kubeadm join <load-balancer-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
+      ```
+
+---
+
+#### Practical Exercises
+
+1. **Initialize a Highly-Available Control Plane**
+    - **Prepare your control plane nodes and install dependencies**:
+      ```bash
+      sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl
+      sudo curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      sudo apt-get update
+      sudo apt-get install -y kubelet kubeadm kubectl
+      sudo apt-mark hold kubelet kubeadm kubectl
+      sudo swapoff -a
+      sudo sed -i '/ swap / s/^/#/' /etc/fstab
+      ```
+    - **Initialize the first control plane node**:
+      ```bash
+      sudo kubeadm init --control-plane-endpoint "<load-balancer-ip>:6443" --upload-certs --pod-network-cidr=192.168.0.0/16
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      ```
+    - **Deploy the Calico network**:
+      ```bash
+      kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      ```
+
+2. **Join Additional Control Plane Nodes**
+    - **On the second and third control plane nodes**:
+      ```bash
+      sudo kubeadm join <load-balancer-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash> --control-plane --certificate-key <certificate-key>
+      ```
+
+3. **Join Worker Nodes**
+    - **On each worker node**:
+      ```bash
+      sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl
+      sudo curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      sudo apt-get update
+      sudo apt-get install -y kubelet kubeadm kubectl
+      sudo apt-mark hold kubelet kubeadm kubectl
+      sudo swapoff -a
+      sudo sed -i '/ swap / s/^/#/' /etc/fstab
+      ```
+    - **Join the worker nodes**:
+      ```bash
+      sudo kubeadm join <load-balancer-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
+      ```
+
+4. **Verify the Cluster**
+    - **Check the nodes in the cluster**:
+      ```bash
+      kubectl get nodes
+      ```
+
+---
+
+#### Tips for the CKA Exam
+
+1. **Understand the Components**: Familiarize yourself with the purpose and configuration of control plane components.
+2. **Practice Commands**: Run through the entire setup process multiple times to become comfortable with the steps.
+3. **Troubleshoot**: Be prepared to troubleshoot common issues like load balancer configuration, network plugin issues, and etcd cluster health.
+4. **Understand etcd**: Know how to manage and troubleshoot etcd, including snapshotting and restoring.
+
+---
+
+#### Sample Questions
+
+1. **Question**: How do you initialize the first control plane node for a highly-available cluster?
+    **Answer**:
+    ```bash
+    sudo kubeadm init --control-plane-endpoint "<load-balancer-ip>:6443" --upload-certs --pod-network-cidr=192.168.0.0/16
+    ```
+
+2. **Question**: How do you join an additional control plane node to the cluster?
+    **Answer**:
+    ```bash
+    sudo kubeadm join <load-balancer-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash> --control-plane --certificate-key <certificate-key>
+    ```
+
+3. **Question**: How do you check the health of the etcd cluster?
+    **Answer**:
+    ```bash
+    ETCDCTL_API=3 etcdctl --endpoints=<etcd-endpoints> --cacert=<path-to-cafile> --cert=<path-to-certfile> --key=<path-to-keyfile> endpoint health
+    ```
+
+---
+
+#### References
+
+- Kubernetes Documentation on [High Availability](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/)
+- Kubernetes [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/)
+- etcd Documentation on [etcd clustering](
+
 # Provision underlying infrastructure to deploy a Kubernetes cluster
 # Perform a version upgrade on a Kubernetes cluster using Kubeadm
 # Implement etcd backup and restore
